@@ -57,6 +57,7 @@ real eta = 0.05; // Initial learning rate
 real alpha = 0.75, x_max = 100.0; // Weighting function parameters, not extremely sensitive to corpus, though may need adjustment for very small or very large corpora
 real grad_clip_value = 100.0; // Clipping parameter for gradient components. Values will be clipped to [-grad_clip_value, grad_clip_value] interval.
 real *W, *gradsq, *cost;
+long long *update_count;
 long long num_lines, *lines_per_thread, vocab_size;
 char vocab_file[MAX_STRING_LENGTH];
 char input_file[MAX_STRING_LENGTH];
@@ -111,6 +112,13 @@ void initialize_parameters() {
         free(W);
         exit(1);
     }
+    update_count = (int*)malloc(vocab_size * sizeof(long long))
+    if (update_count == NULL) {
+        fprintf(stderr, "Error allocating memory for update_count\n");
+        free(W);
+        free(gradsq);
+        exit(1);
+    }
     if (load_init_param) {
         // Load existing parameters
         fprintf(stderr, "\nLoading initial parameters from %s \n", init_param_file);
@@ -124,6 +132,8 @@ void initialize_parameters() {
         for (a = 0; a < W_size; ++a) {
             W[a] = (rand() / (real)RAND_MAX - 0.5) / vector_size;
         }
+        for(long long i = 0; i < vocab_size; ++i)
+            update_count[i] = 0;
     }
 
     if (load_init_gradsq) {
@@ -230,6 +240,9 @@ void *glove_thread(void *vid) {
         gradsq[vector_size + l1] += fdiff;
         gradsq[vector_size + l2] += fdiff;
         
+        ++update_count[cr.word1 - 1];
+        ++update_count[cr.word2 - 1];
+        
     }
     free(W_updates1);
     free(W_updates2);
@@ -286,6 +299,8 @@ int save_params(int nb_iter) {
             sprintf(output_file,"%s.txt",save_W_file);
         else
             sprintf(output_file,"%s.%03d.txt",save_W_file,nb_iter);
+        FILE *ucFile;
+        ucFile = fopen("update_count.txt", "w");
         if (save_gradsq > 0) {
             if (nb_iter < 0)
                 sprintf(output_file_gsq,"%s.txt",save_gradsq_file);
@@ -306,6 +321,7 @@ int save_params(int nb_iter) {
             // input vocab cannot contain special <unk> keyword
             if (strcmp(word, "<unk>") == 0) {free(word); fclose(fid); fclose(fout);  return 1;}
             fprintf(fout, "%s",word);
+            fprintf(filePointer, "%s %lld\n", word, update_count[i]);
             if (model == 0) { // Save all parameters (including bias)
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[(vocab_size + a) * (vector_size + 1) + b]);
@@ -325,6 +341,7 @@ int save_params(int nb_iter) {
                 // Eat irrelevant frequency entry
                 fclose(fout);
                 fclose(fid);
+                fclose(filePointer);
                 free(word); 
                 return 1;
                 } 
@@ -361,6 +378,7 @@ int save_params(int nb_iter) {
 
         fclose(fid);
         fclose(fout);
+        fclose(filePointer);
         if (save_gradsq > 0) fclose(fgs);
     }
     free(word);

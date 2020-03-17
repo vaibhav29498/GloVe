@@ -112,7 +112,7 @@ void initialize_parameters() {
         free(W);
         exit(1);
     }
-    update_count = (int*)malloc(vocab_size * sizeof(long long))
+    update_count = (long long*)malloc(vocab_size * sizeof(long long));
     if (update_count == NULL) {
         fprintf(stderr, "Error allocating memory for update_count\n");
         free(W);
@@ -321,7 +321,7 @@ int save_params(int nb_iter) {
             // input vocab cannot contain special <unk> keyword
             if (strcmp(word, "<unk>") == 0) {free(word); fclose(fid); fclose(fout);  return 1;}
             fprintf(fout, "%s",word);
-            fprintf(ucFile, "%s %lld\n", word, update_count[i]);
+            fprintf(ucFile, "%s %lld\n", word, update_count[a]);
             if (model == 0) { // Save all parameters (including bias)
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[(vocab_size + a) * (vector_size + 1) + b]);

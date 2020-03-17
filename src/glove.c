@@ -321,7 +321,7 @@ int save_params(int nb_iter) {
             // input vocab cannot contain special <unk> keyword
             if (strcmp(word, "<unk>") == 0) {free(word); fclose(fid); fclose(fout);  return 1;}
             fprintf(fout, "%s",word);
-            fprintf(filePointer, "%s %lld\n", word, update_count[i]);
+            fprintf(ucFile, "%s %lld\n", word, update_count[i]);
             if (model == 0) { // Save all parameters (including bias)
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[a * (vector_size + 1) + b]);
                 for (b = 0; b < (vector_size + 1); b++) fprintf(fout," %lf", W[(vocab_size + a) * (vector_size + 1) + b]);
@@ -341,7 +341,7 @@ int save_params(int nb_iter) {
                 // Eat irrelevant frequency entry
                 fclose(fout);
                 fclose(fid);
-                fclose(filePointer);
+                fclose(ucFile);
                 free(word); 
                 return 1;
                 } 
@@ -378,7 +378,7 @@ int save_params(int nb_iter) {
 
         fclose(fid);
         fclose(fout);
-        fclose(filePointer);
+        fclose(ucFile);
         if (save_gradsq > 0) fclose(fgs);
     }
     free(word);
